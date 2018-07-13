@@ -1,0 +1,20 @@
+---
+
+- name: Starting autoprovisioning laravel project
+  hosts: all
+  remote_user: samsul
+  become: true
+  become_user: root
+  roles:
+    #- { role: locales, become: true }
+    #- { role: common, become: true }
+    #- { role: apache2, become: true }
+    #- { role: php, become: true }
+    #- { role: apache2-php, become: true }
+    #- { role: composer, become: true }
+    #- { role: mysql57, become: true }
+    #- { role: nginx, become: true }
+    #- { role: nginx-php-fpm, become: true }
+    #- { role: redis, become: true }
+    #- { role: laravel, become: true }
+    #- { role: ssh, become: true }

@@ -1,0 +1,40 @@
+---
+
+- name: Install Apache2
+  apt: pkg={{ item }} state=latest update_cache=yes cache_valid_time={{ aptcachetime }}
+  with_items:
+    - apache2
+    - apache2-utils
+    - apachetop
+    - libapache2-modsecurity
+    - libapache2-mod-fastcgi
+
+- name: Enable Apache2 modules
+  apache2_module: state=present name={{ item }}
+  with_items: "{{ apache2.modules }}"
+
+- name: Disable Apache2 modules
+  apache2_module: state=absent name={{ item }} force=yes
+  with_items: "{{ apache2.modules_disabled }}"
+
+- name: Configure security options
+  lineinfile: dest=/etc/apache2/conf-enabled/security.conf regexp="^{{ item.param }} " line="{{ item.param }} {{ item.value }}" 
+  with_items:
+    - { param: ServerSignature, value: "Off" }
+    - { param: ServerTokens, value: "Prod" }
+    - { param: TraceEnable, value: "Off" }
+
+- name: Remove default Apache2 vhosts
+  file: path=/etc/apache2/sites-enabled/000-default.conf state=absent
+
+- name: Remove default Apache2 ssl vhosts
+  file: path=/etc/apache2/sites-enabled/default-ssl.conf state=absent
+
+- name: Configure Apache2 user and group
+  lineinfile: dest=/etc/apache2/envvars regexp="^export {{ item.param }}=" line="export {{ item.param }}={{ item.value }}"
+  with_items :
+    - { param: APACHE_RUN_USER, value: "{{ apache2.run_as }}" }
+    - { param: APACHE_RUN_GROUP, value: "{{ apache2.run_as }}" }
+
+- name: "Ensure Apache2 is {{ apache2.start | ternary('started','stopped') }}"
+  service: name=apache2 state={{ apache2.start | ternary('restarted','stopped') }} enabled={{ apache2.service_enabled }}

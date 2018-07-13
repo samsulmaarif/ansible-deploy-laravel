@@ -1,0 +1,80 @@
+---
+
+# http://docs.ansible.com/ansible/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable
+aptcachetime: 3600
+locale: "en_US.UTF-8"
+timezone: "Asia/Jakarta"
+
+base_project_path: "/var/www/app"
+git_repo : https://github.com/linuxsidareja/laravel-5-boilerplate
+git_branch : master
+git_identity_key : 
+deploy_to : "{{ base_project_path }}/laravel"
+
+composer_path: /usr/local/bin/composer
+php_path : /usr/bin/php
+migrate_refresh : no
+
+mysql_host: 127.0.0.1
+mysql_port: 3306
+mysql_user: laravel
+mysql_password: mysecretpassword
+mysql_database: laravel
+
+ssh:
+  start: true
+  service_enabled: true
+  password_auth: true
+  root_login: false
+
+vhosts:
+  - template: laravel
+    vhost: "laravel.myapp.id"
+    path: "{{ base_project_path }}/laravel"
+#  - template: laravel
+#    vhost: "staging.domain.dua"
+#    path: "{{ base_project_path }}/staging"
+
+php:
+  version: "7.1"
+
+php5:
+  start: false
+  service_enabled: no
+  run_as: www-data
+php7:
+  start: true
+  service_enabled: yes
+  run_as: www-data
+
+apache2:
+  start: true
+  service_enabled: yes
+  run_as: www-data
+  modules:
+    - deflate
+    - expires
+    - filter
+    - headers
+    - rewrite
+    - vhost_alias
+    - security2
+    - proxy_fcgi
+  modules_disabled:
+    - autoindex
+
+mysql:
+  start: true
+  service_enabled: yes
+  password: mysecretpassword
+  bind_address: 127.0.0.1
+
+nginx:
+  start: false
+  service_enabled: no
+  run_as: www-data
+
+redis:
+  start: false
+  service_enabled: no
+

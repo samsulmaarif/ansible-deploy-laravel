@@ -1,0 +1,74 @@
+---
+- name: Add co-installable PHP 5.6 and PHP {{ php.version }} to source list
+  apt_repository: repo="ppa:ondrej/php" state=present
+
+- name: Install PHP {{ php.version }}
+  apt: name={{item}} state=latest
+  with_items:
+    - php{{ php.version }}
+    - php{{ php.version }}-common
+    - php{{ php.version }}-fpm
+    - php{{ php.version }}-mysql
+    - php{{ php.version }}-mcrypt
+    - php{{ php.version }}-mbstring
+    - php{{ php.version }}-json
+    - php{{ php.version }}-curl
+    - php{{ php.version }}-gd
+    - php{{ php.version }}-intl
+    - php{{ php.version }}-cli
+    - php{{ php.version }}-xml
+    - php{{ php.version }}-bz2
+    - libapache2-mod-php{{ php.version }}
+    - mcrypt
+    - openssl
+    - php-imagick
+    - php-memcached
+    - php-redis
+    - php-xdebug
+
+- name: Configure PHP 7 settings
+  lineinfile: dest=/etc/php/{{ php.version }}/cli/php.ini regexp="^{{ item.param }} =" line="{{ item.param }} = {{ item.value }}"
+  with_items :
+    - { param: error_reporting, value: "E_ALL" }
+    - { param: display_errors, value: "Off" }
+    - { param: post_max_size, value: "128M" }
+    - { param: upload_max_filesize, value: "128M" }
+    - { param: memory_limit, value: "128M" }
+    - { param: max_input_time, value: "30" }
+    - { param: max_execution_time, value: "30" }
+    - { param: short_open_tag, value: "Off" }
+    - { param: date.timezone , value: "{{ timezone }}" }
+    - { param: cgi.fix_pathinfo , value: "0" }
+    - { param: phar.readonly , value: "Off" }
+    - { param: expose_php , value: "Off" }
+
+- name: Check that Apache 2 PHP {{ php.version }} settings directory exist
+  file: path=/etc/php/{{ php.version }}/apache2 state=directory
+
+- name: Copy PHP {{ php.version }} settings for Apache 2
+  copy: src=/etc/php/{{ php.version }}/cli/php.ini dest=/etc/php/{{ php.version }}/apache2/php.ini remote_src=yes
+
+- name: Copy PHP {{ php.version }} settings for PHP-FPM
+  copy: src=/etc/php/{{ php.version }}/cli/php.ini dest=/etc/php/{{ php.version }}/fpm/php.ini remote_src=yes
+
+- name: Configure PHP {{ php.version }} FPM settings
+  lineinfile: dest=/etc/php/{{ php.version }}/fpm/pool.d/www.conf regexp="^{{ item.param }} =" line="{{ item.param }} = {{ item.value }}"
+  with_items :
+    - { param: user, value: "{{ php7.run_as }}" }
+    - { param: group, value: "{{ php7.run_as }}" }
+    - { param: listen.owner, value: "{{ php7.run_as }}" }
+    - { param: listen.group, value: "{{ php7.run_as }}" }
+    - { param: listen.mode, value: "0666" }
+    - { param: listen, value: "127.0.0.1:9000" }
+
+- name: Configure PHP {{ php.version }} xdebug
+  lineinfile: dest=/etc/php/{{ php.version }}/mods-available/xdebug.ini regexp="^{{ item.param }} =" line="{{ item.param }} = {{ item.value }}" create=yes mode=0644
+  with_items :
+    - { param: xdebug.remote_enable, value: "0" }
+    - { param: xdebug.remote_handler, value: "dbgp" }
+    - { param: xdebug.remote_port , value: "9000" }
+    - { param: xdebug.remote_host , value: "localhost" }
+    - { param: xdebug.cli_color, value: "1" }
+
+- name: "Ensure PHP {{ php.version }} FPM is {{ php7.start | ternary('started','stopped') }}"
+  service: name="php{{ php.version }}-fpm" state={{ php7.start | ternary('restarted','stopped') }} enabled={{ php7.service_enabled }}

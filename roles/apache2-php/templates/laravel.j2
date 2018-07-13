@@ -1,0 +1,68 @@
+<VirtualHost *:{{ item.port | default ('80') }}>
+	DocumentRoot "{{ item.path }}/public"
+	ServerName {{ item.vhost }}
+    ServerAlias www.{{ item.vhost }}
+	DirectoryIndex index.php index.html
+    #Redirect / https://{{ item.vhost }}
+
+	<Directory "{{ item.path }}/public">
+	    Options Indexes FollowSymLinks
+    	AllowOverride All
+    	Require all granted
+	</Directory>
+
+    <FilesMatch "\.php$">
+        SetHandler "proxy:fcgi://127.0.0.1:9000/"
+    </FilesMatch>
+
+    ErrorLog "${APACHE_LOG_DIR}/{{ item.vhost }}-error.log"
+    CustomLog "${APACHE_LOG_DIR}/{{ item.vhost }}-access.log" vhost_combined
+</VirtualHost>
+
+<IfModule mod_ssl.c>
+	<VirtualHost _default_:{{ item.httpsport | default ('443') }}>
+		ServerAdmin samsul@dot-indonesia.com
+
+		DocumentRoot "{{ item.path }}/public"
+		ServerName {{ item.vhost }}
+	    ServerAlias www.{{ item.vhost }}
+		DirectoryIndex index.php index.html
+
+		<Directory />
+			Options FollowSymLinks
+			AllowOverride None
+		</Directory>
+
+		<Directory "{{ item.path }}/public">
+			Options -Indexes +FollowSymlinks +MultiViews
+			AllowOverride All
+		</Directory>
+
+	    <FilesMatch "\.php$">
+	        SetHandler "proxy:fcgi://127.0.0.1:9000/"
+	    </FilesMatch>
+
+		#LogLevel info ssl:warn
+
+		ErrorLog ${APACHE_LOG_DIR}/{{ item.vhost }}-error.log
+		CustomLog ${APACHE_LOG_DIR}/{{ item.vhost }}-access.log vhost_combined
+		#SSLEngine on
+
+		#SSLCertificateFile	/etc/ssl/certs/ssl-cert-snakeoil.pem
+		#SSLCertificateKeyFile /etc/ssl/private/ssl-cert-snakeoil.key
+
+		#SSLCertificateChainFile /etc/apache2/ssl.crt/server-ca.crt
+
+		#SSLCACertificatePath /etc/ssl/certs/
+		#SSLCACertificateFile /etc/apache2/ssl.crt/ca-bundle.crt
+
+		#SSLVerifyClient require
+		#SSLVerifyDepth  10
+
+		#SSLOptions +FakeBasicAuth +ExportCertData +StrictRequire
+		<FilesMatch "\.(cgi|shtml|phtml|php)$">
+				SSLOptions +StdEnvVars
+		</FilesMatch>
+
+	</VirtualHost>
+</IfModule>

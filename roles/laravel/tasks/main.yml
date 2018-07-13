@@ -1,0 +1,64 @@
+---
+# tasks file for laravel
+
+- name: Update remote repository
+  git:
+    repo: "{{ git_repo }}"
+    dest: "{{ deploy_to }}"
+    version: "{{ git_branch }}"
+    accept_hostkey: true
+    update: yes
+  when: git_identity_key|trim == ''
+
+- name: Update remote repository using SSH key
+  git:
+    repo: "{{ git_repo }}"
+    dest: "{{ deploy_to }}"
+    version: "{{ git_branch }}"
+    accept_hostkey: true
+    update: yes
+    force: yes
+    key_file: "{{ git_identity_key }}"
+  when: git_identity_key|trim != ""
+
+- name: copy .env
+  template: src=dotenv.j2 dest={{ deploy_to}}/.env mode=0755
+
+- name: Running composer install
+  shell: chdir={{ deploy_to }} 
+    {{ composer_path }} install
+
+- name: List artisan commands
+  shell: chdir={{ deploy_to }}
+    {{ php_path }} artisan
+  register: artisan_commands
+
+- name: Optimize code
+  shell: chdir={{ deploy_to }}
+    {{ php_path }} artisan clear-compiled && {{ php_path }} artisan optimize
+  when: artisan_commands.stdout.find('optimize') != -1
+
+- name: Key generate
+  shell: chdir={{ deploy_to }}
+    {{ php_path }} artisan {{ item }}
+  with_items: 
+    - key:generate
+    - migrate:refresh
+    - db:seed
+
+- name: update ownership 
+  file: 
+    path: "{{ deploy_to }}"
+    state: directory 
+    recurse: yes
+    mode: 0775
+    group: "{{ apache2.run_as }}"
+    owner: "{{ apache2.run_as }}"
+
+- name: change mode file to 0644
+  shell: chdir={{ deploy_to }}
+    find . -type f -exec chmod 0644 {} \;
+
+- name: change mode directory to 0755
+  shell: chdir={{ deploy_to }}
+    find . -type d -exec chmod 0755 {} \;
