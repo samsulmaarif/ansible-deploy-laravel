@@ -20,7 +20,7 @@
 </VirtualHost>
 
 <IfModule mod_ssl.c>
-	<VirtualHost _default_:{{ item.httpsport | default ('443') }}>
+	<VirtualHost *:{{ item.httpsport | default ('443') }}>
 		ServerAdmin samsul@dot-indonesia.com
 
 		DocumentRoot "{{ item.path }}/public"
@@ -51,6 +51,18 @@
 		#SSLCertificateFile	/etc/ssl/certs/ssl-cert-snakeoil.pem
 		#SSLCertificateKeyFile /etc/ssl/private/ssl-cert-snakeoil.key
 
+		#SSLProtocol TLSv1.2
+		#SSLCompression off
+		#SSLProtocol All -SSLv2 -SSLv3
+		#SSLHonorCipherOrder on
+		#SSLCipherSUite "EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH EDH+aRSA !CAMELLIA !SEED !3DES !RC4 !aNULL !eNULL !LOW !MD5 !EXP !PSK !SRP !DSS"
+		#SSLOpenSSLConfCmd Curves secp384r1
+		#SSLOpenSSLConfCmd DHParameters "/etc/ssl/certs/dhparam.pem"
+
+		#SSLUseStapling          on
+		#SSLStaplingResponderTimeout 5
+		#SSLStaplingReturnResponderErrors off
+		#SSLStaplingCache        shmcb:/var/run/ocsp(128000)
 		#SSLCertificateChainFile /etc/apache2/ssl.crt/server-ca.crt
 
 		#SSLCACertificatePath /etc/ssl/certs/
@@ -64,5 +76,11 @@
 				SSLOptions +StdEnvVars
 		</FilesMatch>
 
+		# add security header
+		Header set Strict-Transport-Security: "max-age=63072000; includeSubdomains; preload;"
+		Header set X-Frame-Options: "SAMEORIGIN"
+		Header set X-Content-Type-Options: "nosniff"
+		Header set X-XSS-Protection: "1; mode=block"
+		Header set Referrer-Policy: "origin"
 	</VirtualHost>
 </IfModule>
